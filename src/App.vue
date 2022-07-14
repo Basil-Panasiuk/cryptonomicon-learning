@@ -117,6 +117,7 @@
             v-on:click="select(t)"
             :class="{
               'border-4': selectedTicker === t,
+              'bg-red-100': !isValidCoin(t.name),
             }"
             class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
           >
@@ -196,7 +197,7 @@
 </template>
 
 <script>
-import { subscribeToTicker, unsubscribeFromTicker } from "./api";
+import { loadCoins, subscribeToTicker, unsubscribeFromTicker } from "./api";
 
 export default {
   name: "App",
@@ -219,17 +220,9 @@ export default {
   },
 
   created() {
-    const fetchData = async () => {
-      const response = await fetch(
-        "https://min-api.cryptocompare.com/data/all/coinlist?summary=true"
-      );
-
-      const data = await response.json();
-      this.coins = Object.values(data.Data);
-      // console.log(this.coins);
-    };
-
-    fetchData();
+    loadCoins().then((allTickers) => {
+      this.coins = allTickers;
+    });
 
     const windowData = Object.fromEntries(
       new URL(window.location).searchParams.entries()
@@ -299,11 +292,19 @@ export default {
   },
 
   methods: {
+    isValidCoin(name) {
+      return this.coins.some((coin) => coin.Symbol === name);
+    },
+
     updateTicker(tickerName, price) {
       this.tickers
         .filter((t) => t.name === tickerName)
         .forEach((t) => {
           t.price = price;
+
+          if (t === this.selectedTicker) {
+            this.graph.push(price);
+          }
         });
     },
 
